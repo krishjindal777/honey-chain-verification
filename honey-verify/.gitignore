@@ -1,0 +1,93 @@
+﻿# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+wheels/
+
+# ── Virtual Environments ──────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Environment Variables / Secrets ──────────────────────────────────────
+.env
+*.env
+.env.local
+.env.*.local
+secrets.json
+
+# ── ChromaDB Persistence ──────────────────────────────────────────────────
+chroma/
+.chroma/
+chroma_db/
+chromadb_data/
+
+# ── OCR / Tesseract Cache ────────────────────────────────────────────────
+tessdata/
+*.tessdata
+ocr_cache/
+
+# ── Uploaded / Temp Files ────────────────────────────────────────────────
+uploads/
+tmp/
+temp/
+*.tmp
+
+# ── Logs ─────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── OS ───────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── IDE / Editors ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ── Testing ──────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+
+# ── Jupyter ──────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── MyPy / Type Checking ─────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json

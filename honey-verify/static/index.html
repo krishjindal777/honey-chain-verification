@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honey Chain Verification Portal — SDG 12</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
+    .fade-in { animation: fadeIn .4s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    pre { white-space: pre-wrap; word-break: break-word; }
+
+    /* Dropzone states */
+    #dropzone { transition: border-color .18s, background .18s, box-shadow .18s; }
+    #dropzone.dragover {
+      border-color: #d97706;
+      background: #fffbeb;
+      box-shadow: 0 0 0 3px #fcd34d55;
+    }
+    #dropzone.uploading {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+  <!-- ── Header ── -->
+  <header class="bg-amber-600 text-white shadow-md">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+      <span class="text-3xl select-none">🍯</span>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight leading-tight">Honey Chain Verification Portal</h1>
+        <p class="text-amber-100 text-sm font-medium">SDG 12 · Responsible Consumption &amp; Production · AI-Powered Document Verification</p>
+      </div>
+      <span class="ml-auto hidden sm:flex items-center gap-1.5 bg-amber-700 rounded-full px-3 py-1 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-green-300 inline-block"></span>
+        ChromaDB RAG Online
+      </span>
+    </div>
+  </header>
+
+  <!-- ── Main layout ── -->
+  <main class="max-w-5xl mx-auto px-4 py-8 grid lg:grid-cols-5 gap-6">
+
+    <!-- ── Left: Input Panel ── -->
+    <section class="lg:col-span-2 flex flex-col gap-5">
+
+      <!-- Info banner -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p class="font-semibold mb-1">How it works</p>
+        <ol class="list-decimal list-inside space-y-0.5 text-blue-700">
+          <li>Drop or browse a certificate file (.pdf / image / .txt)</li>
+          <li>OCR / parsing populates the text area automatically</li>
+          <li>ChromaDB RAG retrieves governing regulatory clauses</li>
+          <li>Codex &amp; ISO rules applied → timestamped audit record</li>
+        </ol>
+      </div>
+
+      <!-- ══ File Upload Dropzone ══ -->
+      <div class="flex flex-col gap-2">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upload Certificate File</p>
+
+        <label id="dropzone"
+          class="relative flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl p-6 cursor-pointer bg-white text-center hover:border-amber-400 hover:bg-amber-50 transition"
+          for="certFile"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)">
+
+          <!-- Upload progress overlay -->
+          <div id="uploadOverlay"
+            class="hidden absolute inset-0 rounded-xl bg-indigo-50/90 flex flex-col items-center justify-center gap-2 z-10">
+            <svg class="spin w-7 h-7 text-indigo-500" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <p class="text-xs font-semibold text-indigo-700" id="uploadStatusMsg">Processing file…</p>
+          </div>
+
+          <!-- Icon -->
+          <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+          <p class="text-sm font-medium text-slate-600">
+            Drop file here or <span class="text-amber-600 underline">browse</span>
+          </p>
+          <p class="text-xs text-slate-400">.pdf · .png · .jpg · .jpeg · .txt</p>
+          <p id="fileNameLabel" class="text-xs font-semibold text-amber-700 hidden"></p>
+          <!-- Hidden actual input -->
+          <input type="file" id="certFile" accept=".pdf,.png,.jpg,.jpeg,.txt"
+            class="hidden" onchange="handleFileSelect(event)" />
+        </label>
+
+        <!-- OCR warning banner (shown when Tesseract missing) -->
+        <div id="ocrWarning"
+          class="hidden bg-amber-50 border border-amber-300 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">
+          <p class="font-semibold mb-0.5">⚠ Tesseract OCR not available</p>
+          <p id="ocrWarningText"></p>
+        </div>
+
+        <button id="clearFileBtn" onclick="clearFile()"
+          class="hidden text-xs text-red-500 hover:text-red-700 underline self-end transition">
+          ✕ Clear uploaded file
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        <div class="flex-1 h-px bg-slate-200"></div>
+        <span>or use quick-fill samples</span>
+        <div class="flex-1 h-px bg-slate-200"></div>
+      </div>
+
+      <!-- Quick-fill buttons -->
+      <div class="flex flex-col gap-2">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Quick-Fill Samples</p>
+
+        <button onclick="loadValid()"
+          class="flex items-start gap-3 bg-white border border-green-300 hover:border-green-500 hover:bg-green-50 rounded-xl p-3 text-left transition">
+          <span class="text-2xl mt-0.5">✅</span>
+          <div>
+            <p class="font-semibold text-green-800 text-sm">Load Valid Certificate</p>
+            <p class="text-xs text-slate-500">Sohna Organic Honey · HMF 18 mg/kg · ISO 17025 Accredited</p>
+          </div>
+        </button>
+
+        <button onclick="loadAdulterated()"
+          class="flex items-start gap-3 bg-white border border-red-300 hover:border-red-500 hover:bg-red-50 rounded-xl p-3 text-left transition">
+          <span class="text-2xl mt-0.5">⚠️</span>
+          <div>
+            <p class="font-semibold text-red-800 text-sm">Load Adulterated Sample</p>
+            <p class="text-xs text-slate-500">HMF 68 mg/kg · Unaccredited Lab · Inactive Organic Status</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- Raw document textarea -->
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider" for="docText">
+            Raw Document Text
+          </label>
+          <span id="extractedBadge"
+            class="hidden text-xs bg-indigo-100 text-indigo-700 font-semibold rounded-full px-2 py-0.5">
+            Auto-extracted
+          </span>
+        </div>
+        <textarea id="docText"
+          class="w-full h-44 border border-slate-300 rounded-xl p-3 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+          placeholder="Text will be auto-populated after file upload, or paste certificate text here…"></textarea>
+      </div>
+
+      <!-- Verify button -->
+      <button id="verifyBtn" onclick="verifyDocument()"
+        class="w-full bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-xl py-3 px-4 transition flex items-center justify-center gap-2 text-sm">
+        <svg id="btnSpinner" class="hidden spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        <span id="btnLabel">Verify Document</span>
+      </button>
+
+      <!-- Error box -->
+      <div id="errorBox" class="hidden bg-red-50 border border-red-300 rounded-xl p-3 text-sm text-red-700"></div>
+    </section>
+
+    <!-- ── Right: Results Panel ── -->
+    <section class="lg:col-span-3 flex flex-col gap-5">
+
+      <!-- Placeholder -->
+      <div id="placeholder"
+        class="flex-1 flex flex-col items-center justify-center bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center text-slate-400">
+        <span class="text-5xl mb-4">🔍</span>
+        <p class="text-sm font-medium">Verification results will appear here.</p>
+        <p class="text-xs mt-1">Upload a file, load a sample, or paste text, then click <strong>Verify Document</strong>.</p>
+      </div>
+
+      <!-- Results (hidden until response) -->
+      <div id="results" class="hidden fade-in flex flex-col gap-4">
+
+        <!-- File ingestion info strip (only shown after /upload) -->
+        <div id="ingestStrip" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2 flex items-center gap-3 text-xs">
+          <span id="ingestIcon" class="text-base"></span>
+          <div>
+            <span class="font-semibold text-indigo-800" id="ingestFilename"></span>
+            <span class="text-indigo-500 ml-1" id="ingestType"></span>
+          </div>
+          <span class="ml-auto text-indigo-400 font-mono" id="ingestChars"></span>
+        </div>
+
+        <!-- Status badge -->
+        <div id="statusCard" class="rounded-2xl p-5 flex items-center gap-4 border">
+          <div id="statusIcon" class="text-4xl"></div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest mb-0.5" id="statusLabel"></p>
+            <p class="text-sm text-slate-600" id="statusSub"></p>
+          </div>
+          <div class="ml-auto text-right">
+            <p class="text-xs text-slate-400 font-mono" id="auditId"></p>
+            <p class="text-xs text-slate-400 font-mono" id="auditTs"></p>
+          </div>
+        </div>
+
+        <!-- Extracted Metadata -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Extracted Batch Metadata</p>
+          <div id="metaGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm"></div>
+        </div>
+
+        <!-- Compliance Checklist -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Compliance Checklist</p>
+          <ul id="checklist" class="space-y-2 text-sm"></ul>
+        </div>
+
+        <!-- Live RAG Retrieval Card -->
+        <div class="bg-white border border-indigo-200 rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-lg">🧠</span>
+            <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Live RAG Retrieval — ChromaDB</p>
+            <span class="ml-auto text-xs text-slate-400 font-mono">honey_regulatory_standards</span>
+          </div>
+          <div class="bg-indigo-50 rounded-xl px-3 py-2 mb-3">
+            <p class="text-xs text-indigo-500 font-semibold mb-0.5">Semantic Query Sent</p>
+            <p class="text-xs font-mono text-indigo-800 break-words" id="ragQuery">—</p>
+          </div>
+          <div id="ragMatches" class="flex flex-col gap-3"></div>
+        </div>
+
+        <!-- Issues -->
+        <div id="issuesCard" class="hidden bg-red-50 border border-red-200 rounded-2xl p-5">
+          <p class="text-xs font-semibold text-red-600 uppercase tracking-wider mb-3">Detected Issues</p>
+          <ul id="issuesList" class="space-y-2 text-sm text-red-700 list-disc list-inside"></ul>
+        </div>
+
+        <!-- Audit log -->
+        <div class="bg-slate-800 rounded-2xl p-4 text-xs font-mono text-slate-300 overflow-x-auto">
+          <p class="text-slate-500 mb-1">// Cryptographic Audit Log</p>
+          <pre id="auditLog"></pre>
+        </div>
+
+      </div><!-- /results -->
+    </section>
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="max-w-5xl mx-auto px-6 py-4 border-t border-slate-200 mt-4">
+    <p class="text-xs text-slate-400 text-center">
+      Honey Chain Verification Portal · SDG 12 Responsible Consumption &amp; Production ·
+      Rules: Codex Alimentarius CXS 12-1981 · ISO/IEC 17025 · National Organic Apiculture Standards
+    </p>
+  </footer>
+
+  <script>
+    // ── Sample documents ─────────────────────────────────────────────────
+
+    const VALID_CERT = `HONEY QUALITY CERTIFICATE
+================================
+Batch ID: HNY-2024-PK-0091
+Producer: Sohna Organic Honey Co., Punjab
+Harvest Date: 2024-03-15
+Organic Status: Active
+
+LABORATORY ANALYSIS REPORT
+Lab Name: Punjab Food Safety Laboratory
+Lab Accreditation: ISO 17025 Certified (Accred. No. PNAC-1234)
+HMF Level: 18 mg/kg
+Moisture Content: 18.2%
+Diastase Activity: 12.4 DN
+
+CERTIFICATE VALIDITY: 2024-03-15 to 2025-03-14
+Issued under Codex Alimentarius Standard 12-1981
+`;
+
+    const ADULTERATED = `HONEY ANALYSIS REPORT
+================================
+Batch ID: HNY-2024-XX-9988
+Producer: Unknown Wholesale Supplier
+Harvest Date: 2023-11-01
+Organic Status: Inactive
+
+LABORATORY RESULTS
+Lab Name: Generic Testing Lab
+Lab Accreditation: None (Unaccredited facility)
+HMF Level: 68 mg/kg
+Moisture Content: 22.5%
+Diastase Activity: 3.2 DN
+
+WARNING: Sample shows signs of adulteration/excessive heating.
+`;
+
+    function loadValid() {
+      clearFile();
+      document.getElementById('docText').value = VALID_CERT;
+      document.getElementById('extractedBadge').classList.add('hidden');
+      clearError(); clearResults();
+    }
+
+    function loadAdulterated() {
+      clearFile();
+      document.getElementById('docText').value = ADULTERATED;
+      document.getElementById('extractedBadge').classList.add('hidden');
+      clearError(); clearResults();
+    }
+
+    // ── Dropzone / file handling ──────────────────────────────────────────
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      document.getElementById('dropzone').classList.remove('dragover');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processUploadedFile(file);
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) processUploadedFile(file);
+    }
+
+    function clearFile() {
+      document.getElementById('certFile').value = '';
+      document.getElementById('fileNameLabel').classList.add('hidden');
+      document.getElementById('clearFileBtn').classList.add('hidden');
+      document.getElementById('ocrWarning').classList.add('hidden');
+      document.getElementById('dropzone').classList.remove('uploading');
+    }
+
+    // ── Core upload + auto-verify flow ────────────────────────────────────
+
+    async function processUploadedFile(file) {
+      clearError();
+      clearResults();
+      document.getElementById('extractedBadge').classList.add('hidden');
+
+      // Show filename in dropzone
+      const lbl = document.getElementById('fileNameLabel');
+      lbl.textContent = '📎 ' + file.name;
+      lbl.classList.remove('hidden');
+      document.getElementById('clearFileBtn').classList.remove('hidden');
+      document.getElementById('ocrWarning').classList.add('hidden');
+
+      // Show loading overlay inside dropzone
+      setDropzoneLoading(true, 'Extracting text…');
+      setLoading(true);
+
+      try {
+        const form = new FormData();
+        form.append('file', file);
+
+        const res = await fetch('/upload', { method: 'POST', body: form });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        // Show OCR warning banner whenever the field is set
+        if (data.ocr_warning) {
+          document.getElementById('ocrWarning').classList.remove('hidden');
+          document.getElementById('ocrWarningText').textContent = data.ocr_warning;
+        }
+
+        if (data.extracted_text) {
+          // Populate textarea and auto-run verification
+          document.getElementById('docText').value = data.extracted_text;
+          document.getElementById('extractedBadge').classList.remove('hidden');
+          renderResults(data.verification, {
+            filename: data.filename,
+            file_type: data.file_type,
+            char_count: data.extracted_text.length,
+          });
+        } else {
+          // Tesseract missing — leave textarea empty with a helpful hint
+          document.getElementById('docText').value = '';
+          document.getElementById('docText').placeholder =
+            'OCR unavailable — paste the certificate text here manually, then click Verify Document.';
+          document.getElementById('placeholder').classList.remove('hidden');
+          document.getElementById('results').classList.add('hidden');
+        }
+
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        setDropzoneLoading(false);
+        setLoading(false);
+      }
+    }
+
+    // ── Manual verify (text box) ──────────────────────────────────────────
+
+    async function verifyDocument() {
+      const text = document.getElementById('docText').value.trim();
+      if (!text) {
+        showError('Please paste or load a document, or upload a file first.');
+        return;
+      }
+
+      setLoading(true);
+      clearError();
+      clearResults();
+
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderResults(data, null);
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────
+
+    /**
+     * @param {object} d - VerificationResult JSON
+     * @param {object|null} ingest - { filename, file_type, char_count } from /upload, or null
+     */
+    function renderResults(d, ingest) {
+      document.getElementById('placeholder').classList.add('hidden');
+      document.getElementById('results').classList.remove('hidden');
+
+      // Ingestion strip (file upload only)
+      const strip = document.getElementById('ingestStrip');
+      if (ingest) {
+        const typeIcons = { pdf: '📄', image: '🖼️', text: '📝' };
+        document.getElementById('ingestIcon').textContent = typeIcons[ingest.file_type] || '📎';
+        document.getElementById('ingestFilename').textContent = ingest.filename;
+        document.getElementById('ingestType').textContent = `(${ingest.file_type})`;
+        document.getElementById('ingestChars').textContent = `${ingest.char_count.toLocaleString()} chars extracted`;
+        strip.classList.remove('hidden');
+      } else {
+        strip.classList.add('hidden');
+      }
+
+      const verified = d.status === 'VERIFIED';
+
+      // Status card
+      const card = document.getElementById('statusCard');
+      card.className = verified
+        ? 'rounded-2xl p-5 flex items-center gap-4 border bg-green-50 border-green-300'
+        : 'rounded-2xl p-5 flex items-center gap-4 border bg-red-50 border-red-300';
+      document.getElementById('statusIcon').textContent = verified ? '✅' : '🚫';
+      const lbl = document.getElementById('statusLabel');
+      lbl.textContent = verified ? 'VERIFIED' : 'REJECTED / FLAGGED';
+      lbl.className = verified
+        ? 'text-xs font-semibold uppercase tracking-widest mb-0.5 text-green-700'
+        : 'text-xs font-semibold uppercase tracking-widest mb-0.5 text-red-700';
+      document.getElementById('statusSub').textContent = verified
+        ? 'All compliance checks passed. Certificate is authentic.'
+        : `${d.issues.length} compliance issue${d.issues.length !== 1 ? 's' : ''} detected.`;
+      document.getElementById('auditId').textContent = d.audit_id;
+      document.getElementById('auditTs').textContent = d.timestamp;
+
+      // Metadata cards
+      const meta = d.extracted;
+      const metaFields = [
+        { label: 'Batch ID',          value: meta.batch_id             || '—' },
+        { label: 'Producer',          value: meta.producer_name        || '—' },
+        { label: 'Harvest Date',      value: meta.harvest_date         || '—' },
+        { label: 'HMF Level',         value: meta.hmf_level != null ? `${meta.hmf_level} mg/kg` : '—' },
+        { label: 'Lab Accreditation', value: meta.lab_accreditation    || '—' },
+        { label: 'Organic Status',    value: meta.organic_status ? '✔ Active' : '✘ Inactive' },
+      ];
+      document.getElementById('metaGrid').innerHTML = metaFields.map(f => `
+        <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
+          <p class="text-xs text-slate-400 mb-0.5">${f.label}</p>
+          <p class="font-semibold text-slate-800 leading-snug text-xs break-words">${escHtml(String(f.value))}</p>
+        </div>`).join('');
+
+      // Compliance checklist
+      const checks = [
+        { key: 'hmf_within_codex_limit',       label: 'HMF ≤ 40 mg/kg  (Codex CXS 12-1981)' },
+        { key: 'iso_17025_accredited_lab',      label: 'ISO/IEC 17025 Accredited Laboratory' },
+        { key: 'organic_certification_active',  label: 'Organic Certification Active (NOP)' },
+      ];
+      document.getElementById('checklist').innerHTML = checks.map(c => {
+        const pass = d.checklist[c.key];
+        return `<li class="flex items-center gap-3 rounded-lg px-3 py-2 ${pass ? 'bg-green-50' : 'bg-red-50'}">
+          <span class="text-base">${pass ? '✅' : '❌'}</span>
+          <span class="${pass ? 'text-green-800' : 'text-red-700'}">${c.label}</span>
+          <span class="ml-auto text-xs font-bold ${pass ? 'text-green-600' : 'text-red-500'}">${pass ? 'PASS' : 'FAIL'}</span>
+        </li>`;
+      }).join('');
+
+      // RAG Retrieval Card
+      const ragMatches = d.rag_matches || [];
+      if (ragMatches.length > 0) {
+        document.getElementById('ragQuery').textContent = ragMatches[0].query_used;
+      }
+
+      const distBar = (dist) => {
+        const sim = Math.max(0, Math.min(100, Math.round((1 - dist) * 100)));
+        const color = sim >= 70 ? 'bg-green-400' : sim >= 45 ? 'bg-amber-400' : 'bg-red-400';
+        return `<div class="flex items-center gap-2">
+          <div class="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div class="${color} h-full rounded-full" style="width:${sim}%"></div>
+          </div>
+          <span class="text-xs font-mono text-slate-500 w-16 text-right">${sim}% sim · ${dist.toFixed(4)}</span>
+        </div>`;
+      };
+
+      const rankLabel = ['🥇 Top Match', '🥈 2nd Match', '🥉 3rd Match'];
+      document.getElementById('ragMatches').innerHTML = ragMatches.map((m, i) => `
+        <div class="border border-indigo-100 rounded-xl p-3 bg-indigo-50">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-indigo-700">${rankLabel[i] || `Match ${i+1}`}</span>
+            <span class="text-xs font-semibold text-indigo-500 bg-indigo-100 rounded-full px-2 py-0.5">${escHtml(m.standard)}</span>
+          </div>
+          ${distBar(m.distance)}
+          <p class="text-xs text-slate-700 mt-2 leading-relaxed">${escHtml(m.clause)}</p>
+        </div>`).join('');
+
+      // Issues
+      const issuesCard = document.getElementById('issuesCard');
+      if (d.issues.length > 0) {
+        issuesCard.classList.remove('hidden');
+        document.getElementById('issuesList').innerHTML =
+          d.issues.map(i => `<li>${escHtml(i)}</li>`).join('');
+      } else {
+        issuesCard.classList.add('hidden');
+      }
+
+      // Audit log
+      document.getElementById('auditLog').textContent = JSON.stringify({
+        audit_id:       d.audit_id,
+        timestamp:      d.timestamp,
+        status:         d.status,
+        document_hash:  d.document_hash,
+        source:         ingest ? `file:${ingest.file_type}` : 'text_input',
+        checklist:      d.checklist,
+        rag_references: ragMatches.map(m => ({
+          standard:       m.standard,
+          distance:       m.distance,
+          clause_preview: m.clause.slice(0, 80) + '…',
+        })),
+        issues: d.issues,
+      }, null, 2);
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────────────
+
+    function setDropzoneLoading(on, msg = '') {
+      const overlay = document.getElementById('uploadOverlay');
+      const dz = document.getElementById('dropzone');
+      if (on) {
+        document.getElementById('uploadStatusMsg').textContent = msg;
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        dz.classList.add('uploading');
+      } else {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        dz.classList.remove('uploading');
+      }
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function setLoading(on) {
+      document.getElementById('btnSpinner').classList.toggle('hidden', !on);
+      document.getElementById('btnLabel').textContent = on ? 'Verifying…' : 'Verify Document';
+      document.getElementById('verifyBtn').disabled = on;
+    }
+
+    function showError(msg) {
+      const b = document.getElementById('errorBox');
+      b.textContent = '⚠ ' + msg;
+      b.classList.remove('hidden');
+    }
+
+    function clearError() {
+      const b = document.getElementById('errorBox');
+      b.textContent = '';
+      b.classList.add('hidden');
+    }
+
+    function clearResults() {
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('placeholder').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
