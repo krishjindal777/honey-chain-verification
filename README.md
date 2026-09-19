@@ -164,21 +164,29 @@ pytesseract>=0.3.10
 ```bash
 # 1. Clone the repository
 git clone https://github.com/krishjindal777/honey-chain-verification.git
+
+# 2. Enter the project directory
 cd honey-chain-verification
 
-# 2. Create and activate a virtual environment
+# 3. Create a virtual environment
 python -m venv venv
+```
 
-# Windows
+```bash
+# 4a. Activate — Windows
 venv\Scripts\activate
+```
 
-# macOS / Linux
+```bash
+# 4b. Activate — macOS / Linux
 source venv/bin/activate
+```
 
-# 3. Install Python dependencies
+```bash
+# 5. Install Python dependencies
 pip install -r requirements.txt
 
-# 4. Start the server
+# 6. Start the server
 python app.py
 ```
 
