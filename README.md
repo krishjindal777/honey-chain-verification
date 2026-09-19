@@ -283,13 +283,6 @@ Drop any scanned honey certificate image (`.png`, `.jpg`) or PDF onto the upload
 
 ---
 
-## Engineering Note
-
-This project was architected and built with **agentic AI orchestration via [IBM Bob](https://www.ibm.com)**, an enterprise AI software engineering assistant. The full-stack prototype — spanning multi-modal ingestion, ChromaDB RAG integration, deterministic compliance rules, cryptographic audit trail, and the Tailwind CSS dashboard — was developed through **human-in-the-loop verification engineering**: every generated artefact was reviewed, tested, and validated against live execution before being accepted.
-
-This workflow demonstrates that production-grade AI-powered compliance tooling can be designed, implemented, and deployed at significantly accelerated timelines without sacrificing correctness or auditability — a core principle of responsible AI-assisted software development.
-
----
 
 ## License
 
